@@ -1,0 +1,59 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def locally_weighted_regression(x, X, Y, tau):
+    """
+    Performs locally weighted regression.
+
+    Args:
+        x: The query point (1D array with bias term).
+        X: The training data points (with bias term).
+        Y: The training data points (targets).
+        tau: The bandwidth parameter.
+
+    Returns:
+        The predicted value at the query point.
+    """
+    # Compute weights based on distance to the query point
+    weights = np.exp(-((x[1] - X[:, 1]) ** 2) / (2 * tau ** 2))
+    W = np.diag(weights)
+
+    try:
+        beta = np.linalg.pinv(X.T @ W @ X) @ X.T @ W @ Y
+    except np.linalg.LinAlgError:
+        print("Singular matrix encountered. Returning NaN")
+        return np.nan
+
+    return beta @ x
+
+def generate_noisy_data(n=100):
+    """Generates noisy sinusoidal data."""
+    np.random.seed(42)  # For reproducibility
+    X = np.linspace(-3, 3, n)
+    Y = np.sin(X) + np.random.normal(0, 0.3, n)
+    return X, Y
+
+def plot_lwr(X, Y, tau):
+    """Plots the locally weighted regression results."""
+    x_vals = np.linspace(min(X[:, 1]), max(X[:, 1]), 100)  # Feature range
+    x_test = np.array([[1, x] for x in x_vals])  # Add bias term
+    y_pred = [locally_weighted_regression(x, X, Y, tau) for x in x_test]
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(X[:, 1], Y, label="Training Data", alpha=0.7)
+    plt.plot(x_vals, y_pred, color="red", label=f"LWR (tau={tau})")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.title(f"Locally Weighted Regression (tau={tau})")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# Example Usage
+X_raw, Y = generate_noisy_data()
+X = np.array([[1, x] for x in X_raw])  # Add bias term
+
+# Test with different tau values
+plot_lwr(X, Y, tau=0.3)
+plot_lwr(X, Y, tau=0.8)
+plot_lwr(X, Y, tau=0.05)
